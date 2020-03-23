@@ -1,9 +1,11 @@
 import React from "react";
-import { render, waitFor, rerender } from "@testing-library/react";
+import { render, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import App from "./App";
-import mockAxios from "axios";
 
+import App from "./App";
+import Episodes from "./components/Episodes";
+
+import mockAxios from "axios";
 jest.mock("axios");
 
 const mockShowData = {
@@ -705,15 +707,45 @@ const mockShowData = {
    }
 };
 
-test("loads and displays show episodes", async () => {
+test("should load and display show episodes with dummy show data", async () => {
    mockAxios.get.mockResolvedValueOnce(mockShowData);
-   const { getByText, getByRole, findAllByTestId } = render(<App />);
+   const { getByText, queryAllByTestId } = render(<App />);
 
+   //Wait for show data to be loaded
    await waitFor(() => {
-      userEvent.click(getByText(/select a season/i));
-      userEvent.click(getByText(/season 1/i));
+      getByText(/Stranger Things Test/i);
    });
 
-   const episodes = await findAllByTestId("episode-card");
+   //Select season info
+   userEvent.click(getByText(/select a season/i));
+   userEvent.click(getByText(/season 1/i));
+
+   //Get all epidoes that are displayed
+   const episodes = queryAllByTestId("episode-card");
+
+   //Make sure all episodes
+   mockShowData.data._embedded.episodes.forEach(episode => {
+      if (episode.season === 1) {
+         getByText(episode.name);
+      }
+   });
+
    expect(episodes.length).toBeGreaterThan(0);
+});
+
+test("should render episode cards", () => {
+   const { getByText, queryAllByTestId } = render(
+      <Episodes episodes={mockShowData.data._embedded.episodes} />
+   );
+
+   //Get all episode cards on page
+   const episodes = queryAllByTestId("episode-card");
+
+   //Make sure all episodes are rendered as a card
+   expect(episodes.length).toEqual(mockShowData.data._embedded.episodes.length);
+
+   //Make sure that there is data displayed on the cards
+   mockShowData.data._embedded.episodes.forEach(episode => {
+      getByText(episode.name);
+   });
 });
